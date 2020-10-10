@@ -1,0 +1,89 @@
+# Counterfactual Model
+
+```{r, echo = FALSE}
+library(dplyr)
+set.seed(777)
+```
+
+## Conterfactual Model as a Missing Data Problem
+
+The counterfactual model assumess that there is an unseen (missing) outcome that our experimental unit would have displayed had it received a different treatment than it did. The following data example will be useful to understand this point. We have $n =6$ units that randomly get assigned a treatment $A$ like so:
+
+```{r}
+n_obs <- 6
+obs_id <- 1:n_obs
+A <- rbinom(n_obs, 1, 0.5)
+```
+
+We denote by $Y$ their individual responses to the treatment. In this example, receiving the outcome increases on average its baseline of 100 by 10 units. In statistical language we can write this as
+
+\begin{equation}
+Y=100+10A+\varepsilon   (\#eq:assignment)
+\end{equation}
+
+where $\varepsilon$ is normally distributed error. This can be simulated as:
+
+```{r}
+epsilon <- rnorm(n_obs)
+Y <- 100 + 10*A + epsilon
+```
+
+This sort of data would be represented like this in a typical data set:
+
+```{r}
+data.frame(obs_id, A, Y)
+```
+
+However, this data generating mechanism in \@ref(eq:assignment) can be thought in a different way as well.
+
+\begin{eqnarray}
+Y(0) = & 100 +\varepsilon, \\
+Y(1) = & 110 + \varepsilon. (\#eq:conterfactual)
+\end{eqnarray}
+
+The two equations in \@ref(eq:conterfactual) say that each experimental unit would express one of the two outcomes 
+
+\begin{equation}
+(Y(1), Y(0)) (\#eq:potentialoutcomes)
+\end{equation}
+
+depending on the treatment $A$ assigned. Only one of the two potential outcomes in \@ref(eq:potentialoutcomes) would be observed.
+
+In a world where we could know what all the conterfactual outcomes were we would collect data as follow:
+
+```{r}
+Y_0 <- 100 + epsilon
+Y_1 <- 100 + 10*A + epsilon
+```
+
+where we can record both $Y(0)$ and $Y(1)$ at the same time on each experimental unit. Then our data would look like
+
+```{r}
+data.frame(obs_id, A, Y_0, Y_1)
+```
+
+
+but we don't live in a world with parallel universes so in reality we would only have this
+
+```{r}
+data.frame(obs_id, A, Y_0, Y_1) %>%
+   mutate(
+      Y_0 = ifelse(A == 0, Y_0, NA),
+      Y_1 = ifelse(A == 1, Y_1, NA)
+   )
+```
+
+and by a minor data wrangling we get back to our original data:
+
+```{r}
+data.frame(obs_id, A, Y_0, Y_1) %>%
+   mutate(
+      Y_0 = ifelse(A == 0, Y_0, NA),
+      Y_1 = ifelse(A == 1, Y_1, NA),
+      Y   = ifelse(A == 1, Y_1, Y_0)
+   ) %>% 
+  select(obs_id, A, Y)
+```
+
+## Chapter Summary
+
